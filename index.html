@@ -8,7 +8,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
-<style>html { color-scheme: light; } body { margin: 0; } [hidden] { display: none !important; }</style>
+<style>html { color-scheme: light; } body { margin: 0; }</style>
 <title>AniVault</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap">
@@ -43,6 +43,7 @@
   --g-Adventure: #4cc9b4; --g-Drama: #ff7fb4; --g-Comedy: #e6c63a; color-scheme: dark; }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 14px; line-height: 1.5;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 48px; }
 body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
@@ -151,6 +152,21 @@ textarea.mono { width: 100%; font-family: ui-monospace, SFMono-Regular, Menlo, m
 .help code { background: var(--surface-2); padding: 1px 6px; border-radius: 5px; font-size: 11px; overflow-wrap: anywhere; }
 .stack { display: grid; gap: 10px; }
 
+.banner { background: var(--bad-soft); color: var(--bad); border-radius: 10px; padding: 10px 14px; font-weight: 600; font-size: 13px; margin-bottom: 12px; }
+.ep { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-3); font-weight: 600; }
+.ep input { width: 76px; padding: 5px 8px; }
+.icon-btn { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 8px 12px; font-weight: 600; font-size: 12px; color: var(--ink-2); }
+.icon-btn:hover { border-color: var(--accent); }
+.linkbtn { background: none; border: 0; padding: 0; color: var(--ink-3); font-size: 12px; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+.linkbtn:hover { color: var(--accent); }
+.foot-meta { display: flex; justify-content: space-between; gap: 8px; padding-top: 2px; }
+.pick-title { font-family: var(--display); font-size: 26px; font-weight: 800; line-height: 1.15; margin: 6px 0 8px; text-wrap: balance; }
+label.btn input { display: none; }
+button.tag { background: transparent; font-family: inherit; cursor: pointer; }
+button.tag:hover { border-color: var(--accent); color: var(--accent); }
+.why { margin: 0; font-size: 12px; color: var(--ink-3); }
+label.btn { cursor: pointer; }
+
 /* bulk add */
 #bulk-dlg { width: min(640px, calc(100vw - 32px)); max-height: 90vh; overflow: auto; }
 #bulk-dlg textarea { width: 100%; }
@@ -194,27 +210,28 @@ dialog h2 { font-size: 19px; margin-bottom: 14px; }
       <svg viewBox="0 0 36 36" aria-hidden="true"><rect width="36" height="36" rx="10" fill="var(--accent)"/><circle cx="18" cy="18" r="9" fill="none" stroke="var(--accent-ink)" stroke-width="2.5"/><path d="M15.5 13.8v8.4l7-4.2z" fill="var(--accent-ink)"/></svg>
       <div><h1>AniVault</h1><p>Watchlist and taste tracker</p></div>
     </div>
-    <nav class="tabs" aria-label="Views"><a href="#library" id="tab-library">Library</a><a href="#taste" id="tab-taste">Taste profile</a></nav>
+    <div class="row"><nav class="tabs" aria-label="Views"><a href="#library" id="tab-library">Library</a><a href="#taste" id="tab-taste">Taste profile</a></nav><button type="button" class="icon-btn" id="theme-btn" data-act="theme" hidden>Theme: Auto</button></div>
   </header>
+  <div class="banner" id="no-storage" role="alert" hidden>This browser is blocking storage, so your changes will be lost when you close the page. Copy a backup from the Taste profile tab before leaving.</div>
   <section class="stats" id="stats" aria-label="Summary"></section>
   <main id="view"></main>
 </div>
 
 <dialog id="add-dlg">
   <form id="add-form" method="dialog">
-    <h2>Add an anime</h2>
+    <h2 id="add-title">Add an anime</h2><input type="hidden" id="a-id">
     <div class="field"><label for="a-title">Title</label><input id="a-title" required maxlength="120" placeholder="e.g. Monster"></div>
     <div class="field-row">
       <div class="field"><label for="a-genre">Genre</label><select id="a-genre"></select></div>
       <div class="field"><label for="a-year">Year</label><input id="a-year" type="number" min="1960" max="2035" placeholder="Optional"></div>
     </div>
-    <div class="field-row">
+    <div class="field-row" id="a-extra">
       <div class="field"><label for="a-status">Status</label><select id="a-status"><option value="done">Watched</option><option value="watching">Watching</option><option value="backlog">Plan to watch</option></select></div>
       <div class="field"><label for="a-rating">Rating (1-10)</label><input id="a-rating" type="number" min="1" max="10" placeholder="Optional"></div>
     </div>
     <div class="field"><label for="a-tags">Tags (comma separated)</label><input id="a-tags" maxlength="80" placeholder="e.g. Thriller, Supernatural"></div>
     <div class="field"><label for="a-vibe">One-line description</label><input id="a-vibe" maxlength="140" placeholder="What is it about?"></div>
-    <div class="actions"><button type="button" class="btn" id="a-cancel">Cancel</button><button type="submit" class="btn primary">Add to list</button></div>
+    <div class="actions"><button type="button" class="btn" id="a-cancel">Cancel</button><button type="submit" class="btn primary" id="a-submit">Add to list</button></div>
   </form>
 </dialog>
 <dialog id="bulk-dlg">
@@ -224,6 +241,11 @@ dialog h2 { font-size: 19px; margin-bottom: 14px; }
   <div class="row" style="margin-top:8px"><button type="button" class="btn" data-act="bulk-preview">Preview</button></div>
   <div id="bulk-preview"></div>
   <div class="actions"><button type="button" class="btn" data-act="bulk-close">Close</button><button type="button" class="btn primary" id="bulk-add" data-act="bulk-add" disabled>Add to list</button></div>
+</dialog>
+<dialog id="pick-dlg">
+  <h2>Pick for me</h2>
+  <div id="pick-body"></div>
+  <div class="actions"><button type="button" class="btn" data-act="pick-close">Close</button><button type="button" class="btn" data-act="pick-again">Another</button><button type="button" class="btn primary" id="pick-start" data-act="pick-start">Start watching</button></div>
 </dialog>
 <div id="toast" role="status" aria-live="polite"><span id="toast-msg"></span><button id="toast-undo" hidden>Undo</button></div>
 
@@ -361,11 +383,14 @@ function seedState() {
   return { s, custom: [], ui: { sort: 'default', dense: false } };
 }
 function load() { try { const r = localStorage.getItem(KEY); if (r) { const p = JSON.parse(r); if (p && p.s) return p; } } catch (e) {} return seedState(); }
-function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+let storageOk = true;
+const embedded = window.self !== window.top;
+function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); storageOk = true; } catch (e) { storageOk = false; } }
 state = load();
-state.ui = Object.assign({ sort: 'default', dense: false }, state.ui);
+state.ui = Object.assign({ sort: 'default', dense: false, theme: 'auto' }, state.ui);
+state.ov = state.ov || {}; state.custom = state.custom || [];
 
-const all = () => CATALOG.concat(state.custom);
+const all = () => CATALOG.concat(state.custom).map(a => state.ov[a.id] ? Object.assign({}, a, state.ov[a.id]) : a);
 const get = id => state.s[id] || (state.s[id] = { st: 'backlog', r: null, n: '' });
 const ui = { q: '', genre: 'ALL', status: 'ALL' };
 const pinned = new Set(); /* titles you just changed stay visible until you change the view */
@@ -384,20 +409,22 @@ function buildModel() {
 }
 function predict(a, m) {
   if (!m.active) return { v: a.seed, model: false };
-  const ds = [a.genre, ...a.tags].map(t => (m.delta.get(t) || { d: 0 }).d);
+  const tg = [a.genre, ...a.tags].map(t => ({ t, d: (m.delta.get(t) || { d: 0 }).d }));
+  const ds = tg.map(x => x.d);
   const model = m.mean + ds.reduce((x, y) => x + y, 0) / ds.length * 2;
   const v = Math.min(10, Math.max(1, 0.6 * model + 0.4 * a.seed));
-  return { v, model: true };
+  return { v, model: true, tg };
 }
 
 /* ---------- Mutations ---------- */
 let focusKey = null;
 function setStatus(id, st) {
-  pinned.add(id); const e = get(id); e.st = st;
-  if (st === 'backlog' || st === 'watching') { /* keep rating in case it is restarted */ }
+  const snap = JSON.stringify(state); pinned.add(id); const e = get(id); e.st = st; e.t = Date.now();
   save(); render();
+  const a = all().find(x => x.id === id);
+  toast(`${a ? a.title : 'Title'}: ${STATUS[st]}`, () => { state = JSON.parse(snap); save(); render(); });
 }
-function setRating(id, v) { pinned.add(id); const e = get(id); e.r = e.r === v ? null : v; if (e.st !== 'done') e.st = 'done'; focusKey = `r-${id}-${v}`; save(); render(); }
+function setRating(id, v) { pinned.add(id); const e = get(id); e.r = e.r === v ? null : v; e.t = Date.now(); if (e.st !== 'done') e.st = 'done'; focusKey = `r-${id}-${v}`; save(); render(); }
 
 /* ---------- Toast ---------- */
 let toastTimer, undoFn = null;
@@ -422,6 +449,7 @@ const ICON = {
 function renderStats(m) {
   const list = all(); const c = { backlog: 0, watching: 0, done: 0, dropped: 0 };
   list.forEach(a => c[get(a.id).st]++);
+  c.needs = list.filter(a => get(a.id).st === 'done' && !get(a.id).r).length;
   const rated = list.filter(a => get(a.id).st === 'done' && get(a.id).r);
   const avg = rated.length ? (rated.reduce((s, a) => s + get(a.id).r, 0) / rated.length).toFixed(1) : '-';
   document.getElementById('stats').innerHTML = `
@@ -433,8 +461,19 @@ function renderStats(m) {
 }
 
 /* ---------- Library ---------- */
+function why(p) {
+  if (!p.model) return '';
+  const up = p.tg.filter(x => x.d > 0.15).sort((x, y) => y.d - x.d).slice(0, 2).map(x => x.t);
+  const dn = p.tg.filter(x => x.d < -0.15).sort((x, y) => x.d - y.d)[0];
+  let t = up.length ? 'Because you rate ' + up.join(' and ') + ' highly.' : '';
+  if (dn) t += (t ? ' ' : '') + 'Held back by ' + dn.t + '.';
+  return t ? `<p class="why">${esc(t)}</p>` : '';
+}
 function cardHtml(a, m) {
   const e = get(a.id); const p = predict(a, m);
+  const noteBox = `<details class="note"${e.n ? ' open' : ''}><summary>${e.n ? 'Note' : 'Add a note'}</summary><textarea data-act="note" data-id="${a.id}" aria-label="Note for ${esc(a.title)}" placeholder="Favorite arc, why you dropped off, who to recommend it to">${esc(e.n)}</textarea></details>`;
+  const epRow = `<label class="ep">Episode <input type="number" min="0" max="9999" value="${e.ep ?? ''}" data-act="ep" data-id="${a.id}" aria-label="Current episode of ${esc(a.title)}" placeholder="0"></label>`;
+  const tools = `<div class="foot-meta"><button type="button" class="linkbtn" data-act="edit" data-id="${a.id}">Edit details</button>${a.custom ? `<button type="button" class="linkbtn" data-act="remove" data-id="${a.id}">Remove</button>` : ''}</div>`;
   let foot = '';
   if (e.st === 'done') {
     foot = `<div class="rate-label"><span>Your rating</span><b>${e.r ? e.r + ' / 10' : 'Not rated yet'}</b></div>
@@ -442,10 +481,10 @@ function cardHtml(a, m) {
         `<button type="button" role="radio" aria-checked="${e.r === n}" class="${e.r && n <= e.r ? 'on' : ''}" data-act="rate" data-id="${a.id}" data-v="${n}" id="r-${a.id}-${n}">${n}</button>`).join('')}</div>
       <details class="note"${e.n ? ' open' : ''}><summary>${e.n ? 'Note' : 'Add a note'}</summary><textarea data-act="note" data-id="${a.id}" aria-label="Note for ${esc(a.title)}" placeholder="Favorite arc, why you dropped off, who to recommend it to">${esc(e.n)}</textarea></details>`;
   } else if (e.st === 'dropped') {
-    foot = `<div class="foot-actions"><button type="button" class="btn" data-act="status" data-id="${a.id}" data-v="watching">Resume</button></div>`;
+    foot = `<div class="foot-actions"><button type="button" class="btn" data-act="status" data-id="${a.id}" data-v="watching">Resume</button></div>${noteBox}`;
   } else {
-    foot = `<div class="pred"><div class="pred-line"><span>${p.model ? 'Predicted for you' : 'Starting guess'}</span><b>${p.v.toFixed(1)}</b></div><div class="track" aria-hidden="true"><i style="width:${p.v * 10}%"></i></div></div>
-      <div class="foot-actions"><button type="button" class="btn primary" data-act="status" data-id="${a.id}" data-v="done">${ICON.check} Mark watched</button>${e.st === 'backlog' ? `<button type="button" class="btn ghost" data-act="status" data-id="${a.id}" data-v="watching">Start</button>` : ''}</div>`;
+    foot = `<div class="pred"><div class="pred-line"><span>${p.model ? 'Predicted for you' : 'Starting guess'}</span><b>${p.v.toFixed(1)}</b></div><div class="track" aria-hidden="true"><i style="width:${p.v * 10}%"></i></div>${why(p)}</div>
+      <div class="foot-actions"><button type="button" class="btn primary" data-act="status" data-id="${a.id}" data-v="done">${ICON.check} Mark watched</button>${e.st === 'backlog' ? `<button type="button" class="btn ghost" data-act="status" data-id="${a.id}" data-v="watching">Start</button>` : `<button type="button" class="btn ghost" data-act="status" data-id="${a.id}" data-v="dropped">Drop</button>`}</div>${e.st === 'watching' ? epRow + noteBox : ''}`;
   }
   return `<article class="card ${e.st}">
     <div class="card-top">
@@ -454,8 +493,8 @@ function cardHtml(a, m) {
     </div>
     <h3>${esc(a.title)}</h3>
     <p class="vibe">${esc(a.vibe)}</p>
-    <div class="tags">${a.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>
-    <div class="foot">${foot}</div>
+    <div class="tags">${a.tags.map(t => `<button type="button" class="tag" data-act="tag" data-v="${esc(t)}" title="Show titles with this tag">${esc(t)}</button>`).join('')}</div>
+    <div class="foot">${foot}${tools}</div>
   </article>`;
 }
 
@@ -464,14 +503,15 @@ function renderLibrary(counts, m) {
   let list = all().filter(a => {
     const e = get(a.id);
     const hit = !q || a.title.toLowerCase().includes(q) || a.vibe.toLowerCase().includes(q) || a.tags.some(t => t.toLowerCase().includes(q));
-    return hit && (ui.genre === 'ALL' || a.genre === ui.genre) && (ui.status === 'ALL' || e.st === ui.status || pinned.has(a.id));
+    return hit && (ui.genre === 'ALL' || a.genre === ui.genre) && (ui.status === 'ALL' || e.st === ui.status || pinned.has(a.id) || (ui.status === 'NEEDS' && e.st === 'done' && !e.r));
   });
   const sorters = {
     default: null,
     rating: (a, b) => (get(b.id).r || 0) - (get(a.id).r || 0) || predict(b, m).v - predict(a, m).v,
     predicted: (a, b) => predict(b, m).v - predict(a, m).v,
     year: (a, b) => (b.year || 0) - (a.year || 0),
-    title: (a, b) => a.title.localeCompare(b.title)
+    title: (a, b) => a.title.localeCompare(b.title),
+    recent: (a, b) => (get(b.id).t || 0) - (get(a.id).t || 0)
   };
   if (sorters[state.ui.sort]) list = list.slice().sort(sorters[state.ui.sort]);
   const total = all().length;
@@ -484,13 +524,13 @@ function renderLibrary(counts, m) {
     <div class="row">
       <div class="search">${ICON.search}<input id="search" type="search" placeholder="Search titles, tags, descriptions" value="${esc(ui.q)}" aria-label="Search"></div>
       <select id="genre" aria-label="Genre">${'<option value="ALL">All genres</option>' + GENRES.map(g => `<option value="${g}"${ui.genre === g ? ' selected' : ''}>${GENRE_LABEL[g]}</option>`).join('')}</select>
-      <select id="sort" aria-label="Sort">${[['default','Original order'],['rating','Your rating'],['predicted','Predicted match'],['year','Newest first'],['title','Title A-Z']].map(([k, v]) => `<option value="${k}"${state.ui.sort === k ? ' selected' : ''}>Sort: ${v}</option>`).join('')}</select>
+      <select id="sort" aria-label="Sort">${[['default','Original order'],['rating','Your rating'],['predicted','Predicted match'],['year','Newest first'],['title','Title A-Z'],['recent','Recently updated']].map(([k, v]) => `<option value="${k}"${state.ui.sort === k ? ' selected' : ''}>Sort: ${v}</option>`).join('')}</select>
       <button type="button" class="btn" data-act="dense" aria-pressed="${state.ui.dense}" title="Toggle compact cards">${ICON.rows} Compact</button>
       <button type="button" class="btn" data-act="bulk">${ICON.plus} Paste list</button>
       <button type="button" class="btn primary" data-act="add">${ICON.plus} Add anime</button>
     </div>
     <div class="chips" role="group" aria-label="Filter by status">
-      ${pill('ALL', 'All', total)}${pill('done', 'Watched', counts.done)}${pill('watching', 'Watching', counts.watching)}${pill('backlog', 'Plan to watch', counts.backlog)}${pill('dropped', 'Dropped', counts.dropped)}
+      ${pill('ALL', 'All', total)}${pill('done', 'Watched', counts.done)}${pill('watching', 'Watching', counts.watching)}${pill('backlog', 'Plan to watch', counts.backlog)}${pill('dropped', 'Dropped', counts.dropped)}${counts.needs ? pill('NEEDS', 'Needs rating', counts.needs) : ''}<button type="button" class="btn" style="margin-left:auto" data-act="pick">Pick for me</button>
     </div>
   </div>
   <div class="count">${list.length === total ? `${total} titles` : `${list.length} of ${total} titles`}${m.active ? '' : ' · rate at least 8 titles to turn on predictions'}</div>
@@ -505,7 +545,7 @@ function summaryText(m, genreRows, tagRows) {
   const top = rated.slice().sort((a, b) => get(b.id).r - get(a.id).r).slice(0, 8);
   const low = rated.filter(a => get(a.id).r <= 7).sort((a, b) => get(a.id).r - get(b.id).r).slice(0, 5);
   const dropped = list.filter(a => get(a.id).st === 'dropped').map(a => a.title);
-  const watching = list.filter(a => get(a.id).st === 'watching').map(a => a.title);
+  const watching = list.filter(a => get(a.id).st === 'watching').map(a => a.title + (get(a.id).ep ? ` (episode ${get(a.id).ep})` : ''));
   const next = list.filter(a => get(a.id).st === 'backlog').sort((a, b) => predict(b, m).v - predict(a, m).v).slice(0, 10);
   const lines = [
     `My AniVault summary: ${done.length} watched (${rated.length} rated, average ${m.n ? m.mean.toFixed(1) : '-'}/10), ${watching.length} watching, ${dropped.length} dropped.`,
@@ -537,8 +577,11 @@ function renderTaste(m) {
   const neg = tagArr.filter(x => x.d < -0.05).sort((a, b) => a.d - b.d).slice(0, 4);
   const next = list.filter(a => get(a.id).st === 'backlog').map(a => ({ a, p: predict(a, m) })).sort((x, y) => y.p.v - x.p.v).slice(0, 6);
   const totalPts = rated.reduce((s, a) => s + get(a.id).r, 0);
+  const byE = {};
+  rated.filter(a => a.year).forEach(a => { const d = Math.floor(a.year / 10) * 10; const e = byE[d] || (byE[d] = { d, n: 0, sum: 0 }); e.n++; e.sum += get(a.id).r; });
+  const eraRows = Object.values(byE).sort((a, b) => a.d - b.d);
   const summary = summaryText(m, genreRows, { pos, neg });
-  const backup = JSON.stringify({ v: 2, items: list.map(a => { const e = get(a.id); return { title: a.title, status: e.st, rating: e.r, note: e.n || undefined, ...(a.custom ? { genre: a.genre, year: a.year, tags: a.tags, vibe: a.vibe } : {}) }; }) });
+  const backup = JSON.stringify({ v: 2, items: list.map(a => { const e = get(a.id); return { title: a.title, status: e.st, rating: e.r, note: e.n || undefined, ep: e.ep || undefined, ...(state.ov[a.id] ? { override: state.ov[a.id] } : {}), ...(a.custom ? { genre: a.genre, year: a.year, tags: a.tags, vibe: a.vibe } : {}) }; }) });
   document.getElementById('view').innerHTML = `
   <div class="panels" style="padding-top:8px">
     <section class="panel wide">
@@ -558,6 +601,10 @@ function renderTaste(m) {
       ${pos.length || neg.length ? `<ul class="list">${pos.map(x => `<li><span class="t">${esc(x.t)}</span><span class="pos">+${x.d.toFixed(2)} · ${x.n} titles</span></li>`).join('')}${neg.map(x => `<li><span class="t">${esc(x.t)}</span><span class="neg">${x.d.toFixed(2)} · ${x.n} titles</span></li>`).join('')}</ul>` : '<p class="help">Rate more titles to see which tags pull your scores up or down.</p>'}
     </section>
     <section class="panel">
+      <h2>By release era</h2><p class="sub">Average rating by decade, with the number of rated titles.</p>
+      <div class="bars">${eraRows.length ? eraRows.map(e => `<div class="bar-row"><span class="lbl">${e.d}s</span><div class="track"><i style="width:${e.sum / e.n * 10}%"></i></div><span class="val">${(e.sum / e.n).toFixed(1)} · ${e.n}</span></div>`).join('') : '<p class="help">No ratings yet.</p>'}</div>
+    </section>
+    <section class="panel">
       <h2>Up next</h2><p class="sub">Highest predicted scores among titles you plan to watch.</p>
       ${next.length ? `<ul class="list">${next.map(({ a, p }) => `<li><span class="t">${esc(a.title)}</span><span>${p.v.toFixed(1)}</span></li>`).join('')}</ul>` : '<p class="help">Your plan-to-watch list is empty.</p>'}
     </section>
@@ -569,10 +616,10 @@ function renderTaste(m) {
     <section class="panel wide stack">
       <div><h2>Backup and import</h2><p class="sub">Your list is stored in this browser only. Copy the backup somewhere safe, or paste one in to restore it.</p></div>
       <textarea id="backup" class="mono" readonly rows="3" aria-label="Backup data">${esc(backup)}</textarea>
-      <div class="row"><button type="button" class="btn" data-act="copy" data-target="backup">${ICON.copy} Copy backup</button></div>
+      <div class="row"><button type="button" class="btn" data-act="copy" data-target="backup">${ICON.copy} Copy backup</button>${embedded ? '' : '<button type="button" class="btn" data-act="download">Download backup file</button>'}</div>
       <div class="field" style="margin:8px 0 0"><label for="import-box">Import (a backup from here, or data from the older AniVault file)</label>
         <textarea id="import-box" class="mono" rows="3" placeholder="Paste JSON here"></textarea></div>
-      <div class="row"><button type="button" class="btn primary" data-act="import">Import</button><button type="button" class="btn" data-act="reset">Reset all to plan to watch</button></div>
+      <div class="row"><button type="button" class="btn primary" data-act="import">Import</button><label class="btn">Choose a file<input type="file" id="import-file" accept=".json,application/json,text/plain"></label><button type="button" class="btn" data-act="reset">Reset all to plan to watch</button></div>
       <p class="help">To bring over your real ratings from the older file: open it, press F12 to open the console, run <code>copy(localStorage.getItem('anivault_list_v5'))</code>, then paste here and import.</p>
     </section>
   </div>`;
@@ -601,6 +648,8 @@ function doImport() {
     const r = Number(it.rating ?? it.points);
     e.r = e.st === 'done' && r >= 1 && r <= 10 ? Math.round(r) : null;
     if (it.note) e.n = String(it.note);
+    if (it.ep > 0) e.ep = Math.round(Number(it.ep));
+    if (it.override && !a.custom) state.ov[a.id] = it.override;
     n++;
   });
   save(); render();
@@ -612,6 +661,68 @@ function doReset() {
   save(); render();
   toast('Everything reset to plan to watch', () => { state = JSON.parse(snapshot); save(); render(); });
 }
+
+/* ---------- Edit, remove, pick, theme, download ---------- */
+function openAdd() {
+  document.getElementById('add-form').reset();
+  document.getElementById('a-id').value = ''; document.getElementById('add-title').textContent = 'Add an anime';
+  document.getElementById('a-title').readOnly = false; document.getElementById('a-extra').hidden = false;
+  document.getElementById('a-submit').textContent = 'Add to list'; document.getElementById('add-dlg').showModal();
+}
+function openEdit(id) {
+  const a = all().find(x => x.id === id); if (!a) return;
+  document.getElementById('add-form').reset();
+  document.getElementById('a-id').value = id; document.getElementById('add-title').textContent = 'Edit details';
+  const t = document.getElementById('a-title'); t.value = a.title; t.readOnly = !a.custom;
+  document.getElementById('a-genre').value = a.genre; document.getElementById('a-year').value = a.year || '';
+  document.getElementById('a-tags').value = a.tags.join(', '); document.getElementById('a-vibe').value = a.vibe;
+  document.getElementById('a-extra').hidden = true; document.getElementById('a-submit').textContent = 'Save';
+  document.getElementById('add-dlg').showModal();
+}
+function removeCustom(id) {
+  const a = state.custom.find(x => x.id === id); if (!a) return;
+  const snap = JSON.stringify(state);
+  state.custom = state.custom.filter(x => x.id !== id); delete state.s[id]; delete state.ov[id];
+  save(); render(); toast(`Removed "${a.title}"`, () => { state = JSON.parse(snap); save(); render(); });
+}
+let pickId = null;
+function choosePick(avoid) {
+  const m = buildModel();
+  const pool = all().filter(a => get(a.id).st === 'backlog' && a.id !== avoid).map(a => ({ a, p: predict(a, m) })).sort((x, y) => y.p.v - x.p.v).slice(0, 8);
+  const body = document.getElementById('pick-body'), start = document.getElementById('pick-start');
+  if (!pool.length && avoid != null) return choosePick(null);
+  start.disabled = !pool.length;
+  if (!pool.length) { pickId = null; body.innerHTML = '<p class="help">Nothing left in Plan to watch. Add some titles first.</p>'; return; }
+  const w = pool.map(x => Math.pow(x.p.v, 4)); let r = Math.random() * w.reduce((s, x) => s + x, 0), i = 0;
+  while (i < pool.length - 1 && (r -= w[i]) > 0) i++;
+  const { a, p } = pool[i]; pickId = a.id;
+  body.innerHTML = `<div class="meta"><span class="dot" style="background:${gvar(a.genre)}"></span><b>${esc(a.genre)}</b><span>${a.year || ''}</span></div>
+    <div class="pick-title">${esc(a.title)}</div><p class="vibe">${esc(a.vibe)}</p>
+    <div class="tags">${a.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>
+    <div class="pred" style="margin-top:14px"><div class="pred-line"><span>${p.model ? 'Predicted for you' : 'Starting guess'}</span><b>${p.v.toFixed(1)}</b></div><div class="track" aria-hidden="true"><i style="width:${p.v * 10}%"></i></div>${why(p)}</div>
+    <p class="help">Picked at random from your eight highest predicted titles.</p>`;
+}
+function startPick() {
+  const a = all().find(x => x.id === pickId); if (!a) return;
+  document.getElementById('pick-dlg').close(); setStatus(a.id, 'watching');
+}
+function applyTheme() {
+  const b = document.getElementById('theme-btn'); b.hidden = embedded; if (embedded) return;
+  const t = state.ui.theme || 'auto';
+  if (t === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', t);
+  b.textContent = 'Theme: ' + { auto: 'Auto', light: 'Light', dark: 'Dark' }[t];
+}
+function downloadBackup() {
+  const blob = new Blob([document.getElementById('backup').value], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'anivault-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+document.addEventListener('keydown', ev => {
+  if (ev.key !== '/' || ev.metaKey || ev.ctrlKey || ev.altKey) return;
+  if (ev.target && /^(INPUT|TEXTAREA|SELECT)$/.test(ev.target.tagName)) return;
+  if (route() !== 'library' || document.querySelector('dialog[open]')) return;
+  const s = document.getElementById('search'); if (s) { ev.preventDefault(); s.focus(); }
+});
 
 /* ---------- Bulk add (AI reply or plain list) ---------- */
 let bulkItems = [];
@@ -689,6 +800,7 @@ document.getElementById('bulk-text').addEventListener('paste', () => setTimeout(
 function route() { return location.hash === '#taste' ? 'taste' : 'library'; }
 function render() {
   const m = buildModel(); const counts = renderStats(m);
+  document.getElementById('no-storage').hidden = storageOk;
   const r = route();
   document.getElementById('tab-library').setAttribute('aria-current', r === 'library' ? 'page' : 'false');
   document.getElementById('tab-taste').setAttribute('aria-current', r === 'taste' ? 'page' : 'false');
@@ -703,6 +815,14 @@ document.getElementById('a-genre').innerHTML = GENRES.map(g => `<option value="$
 document.getElementById('a-cancel').addEventListener('click', () => dlg.close());
 document.getElementById('add-form').addEventListener('submit', ev => {
   ev.preventDefault();
+  const editId = document.getElementById('a-id').value;
+  if (editId) {
+    const id = Number(editId);
+    const patch = { genre: document.getElementById('a-genre').value, year: parseInt(document.getElementById('a-year').value, 10) || null, tags: document.getElementById('a-tags').value.split(',').map(s => s.trim()).filter(Boolean).slice(0, 4), vibe: document.getElementById('a-vibe').value.trim() || 'No description' };
+    const ci = state.custom.find(a => a.id === id);
+    if (ci) { Object.assign(ci, patch); const nt = document.getElementById('a-title').value.trim(); if (nt) ci.title = nt; } else state.ov[id] = patch;
+    save(); dlg.close(); render(); return toast('Saved');
+  }
   const title = document.getElementById('a-title').value.trim(); if (!title) return;
   if (all().some(a => norm(a.title) === norm(title))) { dlg.close(); ui.q = title; render(); return toast(`"${title}" is already on your list`); }
   const genre = document.getElementById('a-genre').value, st = document.getElementById('a-status').value;
@@ -720,7 +840,16 @@ document.addEventListener('click', ev => {
   else if (act === 'status') setStatus(id, b.dataset.v);
   else if (act === 'filter-status') { pinned.clear(); ui.status = b.dataset.v; render(); }
   else if (act === 'dense') { state.ui.dense = !state.ui.dense; save(); render(); }
-  else if (act === 'add') dlg.showModal();
+  else if (act === 'add') openAdd();
+  else if (act === 'edit') openEdit(id);
+  else if (act === 'tag') { pinned.clear(); ui.q = b.dataset.v; ui.status = 'ALL'; ui.genre = 'ALL'; render(); window.scrollTo(0, 0); }
+  else if (act === 'remove') removeCustom(id);
+  else if (act === 'pick') { choosePick(null); document.getElementById('pick-dlg').showModal(); }
+  else if (act === 'pick-close') document.getElementById('pick-dlg').close();
+  else if (act === 'pick-again') choosePick(pickId);
+  else if (act === 'pick-start') startPick();
+  else if (act === 'theme') { state.ui.theme = { auto: 'light', light: 'dark', dark: 'auto' }[state.ui.theme || 'auto']; save(); applyTheme(); }
+  else if (act === 'download') downloadBackup();
   else if (act === 'bulk') document.getElementById('bulk-dlg').showModal();
   else if (act === 'bulk-close') document.getElementById('bulk-dlg').close();
   else if (act === 'bulk-preview') bulkPreview();
@@ -736,6 +865,8 @@ document.addEventListener('click', ev => {
 document.addEventListener('change', ev => {
   const t = ev.target;
   if (t.dataset.act === 'bulk-check') updateBulkCount();
+  else if (t.dataset.act === 'ep') { const v = parseInt(t.value, 10); get(Number(t.dataset.id)).ep = v >= 0 ? v : undefined; save(); }
+  else if (t.id === 'import-file') { const f = t.files && t.files[0]; if (f) { const fr = new FileReader(); fr.onload = () => { document.getElementById('import-box').value = String(fr.result); doImport(); }; fr.readAsText(f); t.value = ''; } }
   else if (t.dataset.act === 'status-select') setStatus(Number(t.dataset.id), t.value);
   else if (t.dataset.act === 'note') { get(Number(t.dataset.id)).n = t.value.trim(); save(); }
   else if (t.id === 'genre') { pinned.clear(); ui.genre = t.value; render(); }
@@ -743,7 +874,7 @@ document.addEventListener('change', ev => {
 });
 document.addEventListener('input', ev => { if (ev.target.id === 'search') { pinned.clear(); ui.q = ev.target.value; render(); } });
 
-render();
+applyTheme(); save(); render();
 
 if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) navigator.serviceWorker.register('sw.js').catch(() => {});
 </script>

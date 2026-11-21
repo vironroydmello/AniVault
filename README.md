@@ -6,6 +6,10 @@ A single-page anime watchlist and taste tracker. No build step and no server: pl
 - Predicted scores for unwatched titles, based on your own ratings
 - Taste profile with genre averages, rating distribution and tag affinities
 - Copy a prompt for any AI chat, paste its reply back, and add the suggestions to your list
+- Edit any title's genre, tags and description, and remove titles you added
+- Episode counter for shows you are watching, a "Needs rating" filter and a "Recently updated" sort
+- "Pick for me" suggests what to watch next, and each prediction says which tags drove it
+- Undo after status changes, removals, imports and resets
 - Works offline once loaded, and can be installed to a phone or desktop home screen
 
 Your list is saved in your browser's local storage. Use **Taste profile > Copy backup** to keep a copy, and **Import** to restore it on another browser or device.
