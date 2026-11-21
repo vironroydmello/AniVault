@@ -1,0 +1,751 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2f3fd1">
+<meta name="description" content="Anime watchlist and taste tracker. Ratings, predicted scores and AI recommendations. Saved in your browser.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>html { color-scheme: light; } body { margin: 0; } [hidden] { display: none !important; }</style>
+<title>AniVault</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: masthead + stats, tab switch (Library | Taste), sticky filter bar over an auto-fill card grid. */
+:root {
+  --bg: #f3f4f9; --surface: #ffffff; --surface-2: #eaecf4; --line: #d8dbe8;
+  --ink: #14172b; --ink-2: #474d66; --ink-3: #687089;
+  --accent: #2f3fd1; --accent-ink: #ffffff; --accent-soft: #e3e6fb;
+  --good: #15803d; --good-soft: #dcf3e4; --bad: #be3144; --bad-soft: #fbe4e7;
+  --shadow: 0 1px 2px rgba(20,23,43,.06), 0 8px 24px -12px rgba(20,23,43,.18);
+  --display: 'Bricolage Grotesque', 'Inter', system-ui, sans-serif;
+  --body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --g-Action: #e5533d; --g-DarkFantasy: #8a5cf0; --g-Psychological: #b9791f; --g-SciFi: #2f7de1;
+  --g-Adventure: #1f9d8b; --g-Drama: #d94f8f; --g-Comedy: #b89400;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0d0f1e; --surface: #161a2d; --surface-2: #1f2440; --line: #2a3054;
+  --ink: #eceefa; --ink-2: #aab0cc; --ink-3: #8e95b5;
+  --accent: #909eff; --accent-ink: #0d0f1e; --accent-soft: #262d63;
+  --good: #5fd48a; --good-soft: #17342a; --bad: #ff8a99; --bad-soft: #3a1c26;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  --g-Action: #ff7a63; --g-DarkFantasy: #a98bff; --g-Psychological: #e0a54a; --g-SciFi: #64a2ff;
+  --g-Adventure: #4cc9b4; --g-Drama: #ff7fb4; --g-Comedy: #e6c63a; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0d0f1e; --surface: #161a2d; --surface-2: #1f2440; --line: #2a3054;
+  --ink: #eceefa; --ink-2: #aab0cc; --ink-3: #8e95b5;
+  --accent: #909eff; --accent-ink: #0d0f1e; --accent-soft: #262d63;
+  --good: #5fd48a; --good-soft: #17342a; --bad: #ff8a99; --bad-soft: #3a1c26;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  --g-Action: #ff7a63; --g-DarkFantasy: #a98bff; --g-Psychological: #e0a54a; --g-SciFi: #64a2ff;
+  --g-Adventure: #4cc9b4; --g-Drama: #ff7fb4; --g-Comedy: #e6c63a; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 14px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 48px; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.wrap { max-width: 1180px; margin: 0 auto; }
+button, select, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+h1, h2, h3 { font-family: var(--display); margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+
+/* masthead */
+.mast { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding-block: 24px 16px; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand svg { width: 36px; height: 36px; flex: none; }
+.brand h1 { font-size: 26px; font-weight: 800; line-height: 1; }
+.brand p { margin: 2px 0 0; color: var(--ink-3); font-size: 12px; }
+.tabs { display: inline-flex; background: var(--surface-2); border-radius: 10px; padding: 3px; gap: 2px; }
+.tabs a { padding: 7px 16px; border-radius: 8px; color: var(--ink-2); text-decoration: none; font-weight: 600; font-size: 13px; }
+.tabs a[aria-current="page"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin-bottom: 16px; }
+.stat { background: var(--surface); padding: 12px 16px; min-width: 0; }
+.stat b { display: block; font-family: var(--display); font-size: 24px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.stat span { color: var(--ink-3); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+.stat small { color: var(--ink-3); font-size: 12px; font-weight: 500; }
+
+/* toolbar */
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 8px 12px; display: grid; gap: 10px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.search { flex: 1 1 220px; position: relative; min-width: 0; }
+.search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--ink-3); }
+.search input { width: 100%; padding: 9px 12px 9px 36px; }
+input, select, textarea { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; min-width: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); border-radius: 999px; padding: 6px 13px; font-weight: 600; font-size: 13px; font-variant-numeric: tabular-nums; }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 9px 14px; font-weight: 600; font-size: 13px; display: inline-flex; gap: 6px; align-items: center; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.ghost { background: transparent; }
+.btn svg { width: 15px; height: 15px; }
+.spacer { flex: 1; }
+.count { color: var(--ink-3); font-size: 12px; margin-bottom: 10px; }
+
+/* cards */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 14px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.card.done { box-shadow: var(--shadow); }
+.card.dropped { opacity: .72; }
+.card-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.meta { display: flex; align-items: center; gap: 8px; color: var(--ink-3); font-size: 12px; font-weight: 500; min-width: 0; }
+.dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.meta b { color: var(--ink-2); font-weight: 600; }
+.status { appearance: none; -webkit-appearance: none; border-radius: 999px; padding: 4px 12px; font-size: 12px; font-weight: 600; background: var(--surface-2); color: var(--ink-2); border-color: transparent; cursor: pointer; text-align: center; }
+.status[data-s="done"] { background: var(--good-soft); color: var(--good); }
+.status[data-s="watching"] { background: var(--accent-soft); color: var(--accent); }
+.status[data-s="dropped"] { background: var(--bad-soft); color: var(--bad); }
+.card h3 { font-size: 17px; line-height: 1.25; }
+.vibe { margin: 0; color: var(--ink-2); font-size: 13px; }
+.tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.tag { font-size: 11px; color: var(--ink-3); border: 1px solid var(--line); border-radius: 6px; padding: 1px 7px; }
+.foot { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--line); display: grid; gap: 8px; }
+.rate { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 3px; }
+.rate button { height: 28px; border-radius: 6px; border: 1px solid var(--line); background: transparent; font-size: 12px; font-weight: 600; color: var(--ink-3); font-variant-numeric: tabular-nums; padding: 0; }
+.rate button.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.rate button:hover { border-color: var(--accent); }
+.rate-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-3); }
+.rate-label b { color: var(--ink); font-weight: 700; }
+.pred { display: grid; gap: 5px; }
+.pred-line { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); }
+.pred-line b { font-family: var(--display); font-size: 16px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.track { height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
+.track i { display: block; height: 100%; background: var(--accent); border-radius: 0 3px 3px 0; }
+.foot-actions { display: flex; gap: 8px; align-items: center; }
+.foot-actions .btn { padding: 6px 12px; }
+details.note summary { cursor: pointer; font-size: 12px; color: var(--ink-3); font-weight: 600; list-style: none; }
+details.note summary::-webkit-details-marker { display: none; }
+details.note textarea { width: 100%; margin-top: 6px; min-height: 60px; resize: vertical; font-size: 13px; }
+.dense .vibe, .dense .tags, .dense details.note { display: none; }
+.dense .card { padding: 12px 14px; gap: 6px; }
+.empty { text-align: center; padding: 56px 16px; color: var(--ink-3); border: 1px dashed var(--line); border-radius: 14px; }
+.empty h3 { color: var(--ink); margin-bottom: 4px; }
+
+/* taste */
+.panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 14px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; min-width: 0; }
+.panel.wide { grid-column: 1 / -1; }
+.panel h2 { font-size: 16px; margin-bottom: 4px; }
+.panel .sub { color: var(--ink-3); font-size: 12px; margin: 0 0 14px; }
+.arch { font-family: var(--display); font-size: 30px; font-weight: 800; line-height: 1.1; margin-bottom: 6px; }
+.bars { display: grid; gap: 10px; }
+.bar-row { display: grid; grid-template-columns: 112px minmax(0, 1fr) 70px; gap: 10px; align-items: center; font-size: 13px; }
+.bar-row .lbl { display: flex; align-items: center; gap: 7px; font-weight: 600; min-width: 0; }
+.bar-row .val { text-align: right; color: var(--ink-2); font-variant-numeric: tabular-nums; font-size: 12px; }
+.hist { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 6px; align-items: end; height: 140px; }
+.hist div { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; gap: 4px; font-size: 11px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.hist i { display: block; width: 100%; background: var(--accent); border-radius: 4px 4px 0 0; min-height: 2px; }
+.hist .zero i { background: var(--surface-2); }
+.hist .n { color: var(--ink-2); font-weight: 600; }
+.list { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.list li { display: flex; justify-content: space-between; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.list li:first-child { border-top: 0; }
+.list li span:last-child { color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.list .t { min-width: 0; overflow-wrap: anywhere; }
+.pos { color: var(--good); } .neg { color: var(--bad); }
+textarea.mono { width: 100%; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; min-height: 150px; resize: vertical; }
+.help { color: var(--ink-3); font-size: 12px; margin: 8px 0 0; }
+.help code { background: var(--surface-2); padding: 1px 6px; border-radius: 5px; font-size: 11px; overflow-wrap: anywhere; }
+.stack { display: grid; gap: 10px; }
+
+/* bulk add */
+#bulk-dlg { width: min(640px, calc(100vw - 32px)); max-height: 90vh; overflow: auto; }
+#bulk-dlg textarea { width: 100%; }
+#bulk-preview { margin-top: 12px; display: grid; gap: 0; max-height: 300px; overflow: auto; border: 1px solid var(--line); border-radius: 10px; }
+#bulk-preview:empty { display: none; }
+.bulk-row { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; padding: 10px 12px; border-top: 1px solid var(--line); cursor: pointer; align-items: start; }
+.bulk-row:first-child { border-top: 0; }
+.bulk-row input { margin-top: 3px; }
+.bulk-row b { font-weight: 600; overflow-wrap: anywhere; }
+.bulk-row small { color: var(--ink-3); display: block; font-size: 12px; overflow-wrap: anywhere; }
+.bulk-row.dup { opacity: .6; cursor: default; }
+.bulk-row em { font-style: normal; font-size: 11px; font-weight: 600; color: var(--bad); }
+.bulk-note { margin: 10px 0 0; font-size: 12px; color: var(--ink-3); }
+
+/* dialog + toast */
+dialog { border: 1px solid var(--line); border-radius: 16px; background: var(--surface); color: var(--ink); padding: 22px; width: min(440px, calc(100vw - 32px)); box-shadow: var(--shadow); }
+dialog::backdrop { background: rgba(8, 10, 24, .6); }
+dialog h2 { font-size: 19px; margin-bottom: 14px; }
+.field { display: grid; gap: 4px; margin-bottom: 12px; }
+.field label { font-size: 12px; font-weight: 600; color: var(--ink-2); }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
+#toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 20px); opacity: 0; pointer-events: none; transition: .2s; background: var(--ink); color: var(--bg); padding: 10px 14px; border-radius: 12px; display: flex; gap: 12px; align-items: center; font-weight: 600; font-size: 13px; z-index: 30; max-width: calc(100vw - 32px); }
+#toast.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+#toast button { background: none; border: 0; color: var(--accent); font-weight: 700; padding: 0; }
+:root[data-theme="dark"] #toast button { color: var(--accent-ink); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) #toast button { color: var(--accent-ink); } }
+@media (max-width: 560px) {
+  .stat b { font-size: 20px; } .stat { padding: 10px 12px; }
+  .bar-row { grid-template-columns: 92px minmax(0, 1fr) 58px; }
+  .brand h1 { font-size: 22px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header class="mast">
+    <div class="brand">
+      <svg viewBox="0 0 36 36" aria-hidden="true"><rect width="36" height="36" rx="10" fill="var(--accent)"/><circle cx="18" cy="18" r="9" fill="none" stroke="var(--accent-ink)" stroke-width="2.5"/><path d="M15.5 13.8v8.4l7-4.2z" fill="var(--accent-ink)"/></svg>
+      <div><h1>AniVault</h1><p>Watchlist and taste tracker</p></div>
+    </div>
+    <nav class="tabs" aria-label="Views"><a href="#library" id="tab-library">Library</a><a href="#taste" id="tab-taste">Taste profile</a></nav>
+  </header>
+  <section class="stats" id="stats" aria-label="Summary"></section>
+  <main id="view"></main>
+</div>
+
+<dialog id="add-dlg">
+  <form id="add-form" method="dialog">
+    <h2>Add an anime</h2>
+    <div class="field"><label for="a-title">Title</label><input id="a-title" required maxlength="120" placeholder="e.g. Monster"></div>
+    <div class="field-row">
+      <div class="field"><label for="a-genre">Genre</label><select id="a-genre"></select></div>
+      <div class="field"><label for="a-year">Year</label><input id="a-year" type="number" min="1960" max="2035" placeholder="Optional"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label for="a-status">Status</label><select id="a-status"><option value="done">Watched</option><option value="watching">Watching</option><option value="backlog">Plan to watch</option></select></div>
+      <div class="field"><label for="a-rating">Rating (1-10)</label><input id="a-rating" type="number" min="1" max="10" placeholder="Optional"></div>
+    </div>
+    <div class="field"><label for="a-tags">Tags (comma separated)</label><input id="a-tags" maxlength="80" placeholder="e.g. Thriller, Supernatural"></div>
+    <div class="field"><label for="a-vibe">One-line description</label><input id="a-vibe" maxlength="140" placeholder="What is it about?"></div>
+    <div class="actions"><button type="button" class="btn" id="a-cancel">Cancel</button><button type="submit" class="btn primary">Add to list</button></div>
+  </form>
+</dialog>
+<dialog id="bulk-dlg">
+  <h2>Add from an AI reply or a list</h2>
+  <p class="help" style="margin:0 0 10px">Paste the AI's reply to the prompt from the Taste profile tab, or type titles one per line. You review everything before it is added.</p>
+  <textarea id="bulk-text" class="mono" rows="6" aria-label="Pasted reply or list" placeholder="Paste the AI's JSON reply here&#10;&#10;or a plain list:&#10;Monster&#10;Mob Psycho 100 season 3&#10;Code Geass R2"></textarea>
+  <div class="row" style="margin-top:8px"><button type="button" class="btn" data-act="bulk-preview">Preview</button></div>
+  <div id="bulk-preview"></div>
+  <div class="actions"><button type="button" class="btn" data-act="bulk-close">Close</button><button type="button" class="btn primary" id="bulk-add" data-act="bulk-add" disabled>Add to list</button></div>
+</dialog>
+<div id="toast" role="status" aria-live="polite"><span id="toast-msg"></span><button id="toast-undo" hidden>Undo</button></div>
+
+<script>
+/* ---------- Catalog: [id, title, year, genre, "tags / tags", description, starting score] ---------- */
+const CATALOG = [
+[1,"Attack on Titan",2013,"Dark Fantasy","Action / Mystery","Humanity's desperate war against Titans and jaw-dropping plot twists",9],
+[2,"Demon Slayer (Kimetsu no Yaiba)",2019,"Action","Supernatural / Swordplay","Ufotable's breathtaking breathing-style animation and a fierce sibling bond",10],
+[3,"Jujutsu Kaisen",2020,"Dark Fantasy","Action / Supernatural","High-speed cursed energy combat, domain expansions and elite choreography",9],
+[4,"Death Note",2006,"Psychological","Thriller / Supernatural","Iconic cat-and-mouse genius duel between Light and L",9],
+[5,"Fullmetal Alchemist: Brotherhood",2009,"Adventure","Dark Fantasy / Action","Masterclass pacing, alchemy world-building and unforgettable brotherhood",9],
+[6,"One Punch Man",2015,"Comedy","Action / Superhero Parody","God-tier Season 1 fight animation and deadpan hero satire",9],
+[7,"Hunter x Hunter (2011)",2011,"Adventure","Action / Battle Shonen","Nen, the greatest power system in anime, and the Chimera Ant peak",10],
+[8,"Naruto Shippuden",2007,"Action","Adventure / Ninja","Legendary shinobi rivalries, Akatsuki arcs and emotional payoffs",9],
+[9,"One Piece",1999,"Adventure","Action / Fantasy","Unmatched world-building, Straw Hat crew loyalty and epic saga payoffs",9],
+[10,"Chainsaw Man",2022,"Dark Fantasy","Action / Horror","Raw, cinematic devil-hunting chaos and unhinged anti-hero energy",9],
+[11,"Solo Leveling",2024,"Action","Dark Fantasy / Power Fantasy","Pure progression from E-rank weakling to Shadow Monarch",10],
+[12,"Bleach: Thousand-Year Blood War",2022,"Action","Supernatural / Swordplay","Bankai reveals and relentless Soul Reaper vs. Quincy warfare",10],
+[13,"Mob Psycho 100",2016,"Comedy","Action / Supernatural","Explosive psychic animation paired with heartwarming self-growth",9],
+[14,"Vinland Saga",2019,"Drama","Action / Historical","Brutal Viking combat evolving into a profound redemption journey",9],
+[15,"Spy x Family",2022,"Comedy","Action / Slice of Life","Wholesome spy, assassin and telepath family shenanigans with slick action",8],
+[16,"Tokyo Ghoul",2014,"Dark Fantasy","Action / Horror","Dark urban tragedy, the white-hair transformation and kagune battles",8],
+[17,"Code Geass",2006,"Sci-Fi","Mecha / Psychological","Lelouch's theatrical rebellion, Geass mind control and mecha tactics",6],
+[18,"Frieren: Beyond Journey's End",2023,"Adventure","Fantasy / Drama","Serene post-quest reflection punctuated by jaw-dropping mage duels",9],
+[19,"Steins;Gate",2011,"Sci-Fi","Psychological / Thriller","Slow-burn microwave time-travel conspiracy that hits like a freight train",8],
+[20,"Cyberpunk: Edgerunners",2022,"Sci-Fi","Action / Tragedy","Neon-drenched Trigger overdrive, chrome cyberware and tragic romance",9],
+[21,"Your Name (Kimi no Na wa)",2016,"Drama","Romance / Supernatural","Makoto Shinkai's comet-crossed body-swap visual masterpiece",8],
+[22,"Neon Genesis Evangelion",1995,"Sci-Fi","Mecha / Psychological","Existential deconstruction of mecha tropes and human trauma",7],
+[23,"Kaguya-sama: Love Is War",2019,"Comedy","Romance / Psychological","Death Note-style mind games over high school crushes",8],
+[24,"My Hero Academia",2016,"Action","Superhero","Classic zero-to-hero spirit and tournament arcs",10],
+[25,"Black Clover",2017,"Action","Magic / Shonen","Relentless underdog grit, magic squad battles and zero-quit hype",9],
+[26,"Haikyuu!!",2014,"Action","Sports / Shonen","Pure shonen adrenaline disguised as volleyball, with insane tension",9],
+[27,"Dandadan",2024,"Action","Supernatural / Comedy","Breakneck sakuga, chaotic alien-ghost battles and great chemistry",9],
+[28,"Kaiju No. 8",2024,"Action","Sci-Fi / Monster Hunter","Overpowered monster transformation and defense-force squad combat",9],
+[29,"Yu Yu Hakusho",1992,"Action","Supernatural / Martial Arts","From Hunter x Hunter's creator: the Dark Tournament and spirit gun battles",9],
+[30,"Fire Force (Enen no Shouboutai)",2019,"Action","Supernatural / Dark Fantasy","Explosive pyrokinetic choreography and bass-shaking sound design",8],
+[31,"Blue Lock",2022,"Action","Sports / Survival","Ego-driven striker battle royale",9],
+[32,"Mashle: Magic and Muscles",2023,"Comedy","Action / Parody","One Punch Man meets Harry Potter, with deadpan muscle flexes",8],
+[33,"Dragon Ball Super: Broly",2018,"Action","Martial Arts / Movie","Non-stop martial arts animation and power escalation",9],
+[34,"Fate/stay night: Unlimited Blade Works",2014,"Action","Dark Fantasy / Magic","Animated by Ufotable, with god-tier sword and magic duels",9],
+[35,"Hell's Paradise (Jigokuraku)",2023,"Dark Fantasy","Action / Survival","MAPPA's brutal ninja and samurai survival on a monster-infested island",8],
+[36,"Shangri-La Frontier",2023,"Adventure","Action / Gaming","High-speed boss raids, crisp combat mechanics and zero filler",8],
+[37,"Wind Breaker",2024,"Action","Martial Arts / Delinquent","Clean hand-to-hand street brawling and fiercely loyal brotherhood",8],
+[38,"Hajime no Ippo",2000,"Action","Sports / Boxing","The ultimate zero-to-hero boxing grind with thunderous punches",9],
+[39,"Gintama",2006,"Comedy","Action / Sci-Fi Samurai","Slapstick comedy that suddenly erupts into top-tier sword arcs",9],
+[40,"The Eminence in Shadow",2022,"Action","Comedy / Power Fantasy","Over-the-top OP protagonist aura mixed with chuunibyou comedy",8],
+[41,"Gurren Lagann",2007,"Action","Sci-Fi / Adventure","Pure willpower escalation, the polar opposite of Code Geass politics",9],
+[42,"Dororo",2019,"Dark Fantasy","Action / Samurai","Demon-slaying sword choreography with a quest to reclaim a body",8],
+[43,"Wistoria: Wand and Sword",2024,"Action","Magic / Shonen","Black Clover's magicless underdog meets modern sword sakuga",9],
+[44,"Sakamoto Days",2025,"Action","Comedy / Assassin","John Wick-level hand-to-hand choreography and creative weapon fights",9],
+[45,"Gachiakuta",2025,"Dark Fantasy","Action / Battle Shonen","Gritty urban monster-slaying with weapon-soul powers and raw style",9],
+[46,"Tower of God",2020,"Adventure","Action / Dark Fantasy","High-stakes floor-climbing survival tests, betrayals and faction wars",8],
+[47,"The God of High School",2020,"Action","Martial Arts / Supernatural","Non-stop MAPPA martial arts tournament action from episode one",8],
+[48,"Fate/Zero",2011,"Dark Fantasy","Action / Battle Royale","Ufotable's darker, ruthless Holy Grail War between legendary heroes",9],
+[49,"Soul Eater",2008,"Action","Dark Fantasy / Supernatural","Stylish weapon-meister partnerships and soul resonance",8],
+[50,"Akame ga Kill!",2014,"Dark Fantasy","Action / Assassin","Imperial Arms duels where no hero or villain has plot armor",8],
+[51,"Parasyte: The Maxim",2014,"Dark Fantasy","Action / Sci-Fi Horror","High-tension blade-morphing combat and survival evolution",9],
+[52,"Bungo Stray Dogs",2016,"Action","Supernatural / Mystery","Literary superpowers, rival detective and mafia agencies",8],
+[53,"That Time I Got Reincarnated as a Slime",2018,"Adventure","Action / Power Fantasy","Addictive skill-absorption progression and nation-building boss battles",8],
+[54,"Noragami",2014,"Action","Supernatural / Comedy","Fast spirit-sword exorcisms, god rivalries and great humor",8],
+[55,"Blue Exorcist",2011,"Dark Fantasy","Action / Supernatural","Satan's son wielding blue demon flames in an exorcist academy",8],
+[56,"Ragna Crimson",2023,"Dark Fantasy","Action / Dragon Slayer","All-out sword warfare against overpowered dragon monarchs",8],
+[57,"Kill la Kill",2013,"Action","Comedy / Over-the-Top","Hyper-kinetic scissor-blade duels and pure Trigger adrenaline",8],
+[58,"Magi: The Labyrinth of Magic",2012,"Adventure","Action / Fantasy","Dungeon-conquering Djinn equips and massive magic-kingdom clashes",8],
+[59,"Fog Hill of Five Elements",2020,"Action","Martial Arts / Elemental","Some of the wildest elemental ink-brush martial arts fights ever animated",9],
+[60,"World Trigger",2014,"Action","Sci-Fi / Tactical Battles","Elite squad rank wars with deep trion power mechanics",8],
+[61,"Dragon Ball Z Kai",2009,"Action","Martial Arts / Shonen Classic","The blueprint for every battle shonen transformation and beam clash",9],
+[62,"Fairy Tail",2009,"Adventure","Action / Magic Guild","Black Clover-style guild family loyalty and dragon-slayer magic",8],
+[63,"Seven Deadly Sins (Nanatsu no Taizai)",2014,"Action","Adventure / Fantasy","Overpowered legendary knights unleashing sacred treasure techniques",8],
+[64,"Shangri-La Frontier Season 2",2024,"Adventure","Action / Boss Raids","Shadow-wolf raid choreography and high-speed dual-blade combat",9],
+[65,"Kagurabachi",2026,"Action","Dark Fantasy / Swordplay","Enchanted katana duels with Demon Slayer-tier flair and vengeance",9],
+[66,"The Wrong Way to Use Healing Magic",2024,"Action","Adventure / Comedy","Brutal physical training turns a healer into an unstoppable tank",8],
+[67,"Tsukimichi: Moonlit Fantasy",2021,"Adventure","Action / Power Fantasy","Slime-style overpowered magic scaling, dragon companions and tournaments",8],
+[68,"The Irregular at Magic High School",2014,"Action","Sci-Fi / Magic Academy","Underestimated magic-school student hiding god-tier combat engineering",8],
+[69,"Chivalry of a Failed Knight",2015,"Action","Magic Academy / Swordplay","Zero-to-hero magic-sword tournament duels with crisp choreography",8],
+[70,"Kuroko's Basketball",2012,"Action","Sports / Superpowers","Battle shonen superpowers on a court: Zone awakenings and ankle-breakers",9],
+[71,"Assassination Classroom",2015,"Action","Comedy / School","Misfit students training to assassinate their teacher",9],
+[72,"Dr. STONE",2019,"Adventure","Sci-Fi / Progression","Addictive tech-tree progression rebuilding civilization from the Stone Age",8],
+[73,"Seraph of the End (Owari no Seraph)",2015,"Dark Fantasy","Action / Vampires","Demon-cursed weapons, squad tactics and vampire-slaying warfare",8],
+[74,"D.Gray-man",2006,"Dark Fantasy","Action / Exorcist","Gothic exorcists wielding Innocence weapons against the Noah clan",8],
+[75,"Undead Unluck",2023,"Action","Supernatural / Comedy","Rule-bending negation powers and frantic, creative choreography",8],
+[76,"Re:ZERO -Starting Life in Another World-",2016,"Dark Fantasy","Psychological / Adventure","High-stakes time-loop survival where every victory is earned",8],
+[77,"Overlord",2015,"Dark Fantasy","Action / Power Fantasy","An unrivaled skeletal sorcerer and his floor guardians dominating a fantasy world",8],
+[78,"A Returner's Magic Should Be Special",2023,"Action","Magic Academy / Regression","A time-regressed mage trains an underdog party to survive an apocalypse",8],
+[79,"DanMachi (Is It Wrong to Try to Pick Up Girls in a Dungeon?)",2015,"Adventure","Action / Dungeon Crawler","Zero-to-hero dungeon boss fights and limit-breaking sword clashes",9],
+[80,"The Misfit of Demon King Academy",2020,"Action","Magic Academy / OP Power","A reincarnated Demon King flexing absurd magic supremacy in academy duels",8],
+[81,"Reign of the Seven Spellblades",2023,"Dark Fantasy","Action / Magic Academy","Hogwarts with lethal sword-and-sorcery duels and hidden vengeance plots",8],
+[82,"I Parry Everything",2024,"Action","Adventure / Comedy","A humble warrior deflecting calamity-level attacks with basic parries",8],
+[83,"The Ossan Newbie Adventurer",2024,"Action","Adventure / Shonen Hype","A 30-year-old rookie surviving hellish S-rank training",8],
+[84,"A Certain Scientific Railgun",2009,"Action","Sci-Fi / Esper Battles","An electromaster prodigy unleashing coin-railguns in Academy City fights",9],
+[85,"Sword Art Online: Alicization",2018,"Action","Sci-Fi / Swordplay","Glowing sword-skill clashes and underworld war arcs",8],
+[86,"The Rising of the Shield Hero",2019,"Adventure","Dark Fantasy / Progression","A betrayed underdog unlocks curse-shield transformations against apocalyptic waves",8],
+[87,"Arifureta: From Commonplace to World's Strongest",2019,"Action","Dark Fantasy / OP Power","An abandoned weakling forging magic firearms in a deadly labyrinth",8],
+[88,"Solo Leveling Season 2: Arise from the Shadow",2025,"Action","Dark Fantasy / Power Fantasy","Sung Jinwoo's shadow army and Red Gate dominance on full display",10],
+[89,"Mushoku Tensei: Jobless Reincarnation",2021,"Adventure","Fantasy / Magic","Movie-grade spellcasting choreography and grand continent journeys",9],
+[90,"Twin Star Exorcists",2016,"Action","Supernatural / Shonen","A talisman-powered exorcist duo battling grotesque Kegare monsters",8],
+[91,"Radiant",2018,"Adventure","Action / Magic Shonen","Classic battle-shonen energy with horned sorcerers fighting Nemesis monsters",8],
+[92,"Kemono Jihen",2021,"Dark Fantasy","Action / Supernatural","A half-ghoul detective squad investigating occult monster cases",8],
+[93,"World's Finest Assassin Gets Reincarnated",2021,"Action","Fantasy / Tactical","A master assassin combining modern physics with magic to slay the Hero",8],
+[94,"The Faraway Paladin",2021,"Adventure","Fantasy / Heroic","Raised by undead legends, a young paladin sets out to slay dragons and corrupted gods",8],
+[95,"Berserk of Gluttony",2023,"Dark Fantasy","Action / Power Fantasy","A cursed black-sword wielder devouring monster stats to surpass holy knights",8],
+[96,"Failure Frame",2024,"Dark Fantasy","Action / Revenge","Cast aside with 'useless' status skills, an underdog turns paralysis and poison lethal",8]
+].map(r => ({ id: r[0], title: r[1], year: r[2], genre: r[3], tags: r[4].split('/').map(s => s.trim()), vibe: r[5], seed: r[6] }));
+
+const GENRES = ["Action", "Dark Fantasy", "Psychological", "Sci-Fi", "Adventure", "Drama", "Comedy"];
+const GENRE_LABEL = { "Action": "Action & Battle", "Dark Fantasy": "Dark Fantasy", "Psychological": "Psychological", "Sci-Fi": "Sci-Fi & Mecha", "Adventure": "Adventure & Fantasy", "Drama": "Drama & Romance", "Comedy": "Comedy & Slice of Life" };
+const gvar = g => `var(--g-${g.replace(/[^A-Za-z]/g, '')})`;
+const STATUS = { backlog: "Plan to watch", watching: "Watching", done: "Watched", dropped: "Dropped" };
+const ARCH = {
+  "Action": ["The Adrenaline Shonen Titan", "You live for sakuga-heavy choreography, hype power-ups and high-energy rivalries."],
+  "Dark Fantasy": ["The Grimdark Connoisseur", "You like worlds where no character is safe, moral lines blur and every victory costs something."],
+  "Psychological": ["The 4D-Chess Mastermind", "You want tension, unreliable narrators and genius-level cat-and-mouse mind games."],
+  "Sci-Fi": ["The Neon Futurist", "Time-travel paradoxes, cyberpunk dystopias and mecha rebellions: you like speculative worlds."],
+  "Adventure": ["The Grand Odyssey Seeker", "Big world-building, sprawling journeys and strong companions keep you watching for the long haul."],
+  "Drama": ["The Emotional Storyteller", "Character growth and bittersweet, human relationships land harder for you than spectacle."],
+  "Comedy": ["The Wit Enthusiast", "Sharp parody and wholesome chaos: you value charisma, timing and pure entertainment."]
+};
+
+/* Last known watch state carried over from the previous version of this file. */
+const PREV_UNWATCHED = new Set(["Steins;Gate","Cyberpunk: Edgerunners","Your Name (Kimi no Na wa)","Neon Genesis Evangelion","Kaguya-sama: Love Is War","Yu Yu Hakusho","Gintama","Fate/Zero","Soul Eater","Akame ga Kill!","Bungo Stray Dogs","Kill la Kill","Magi: The Labyrinth of Magic","Fog Hill of Five Elements","Kuroko's Basketball","D.Gray-man","Undead Unluck"]);
+const PREV_SCORES = { "Code Geass": 6, "Parasyte: The Maxim": 7, "Demon Slayer (Kimetsu no Yaiba)": 10, "Hunter x Hunter (2011)": 10, "Solo Leveling": 10, "Bleach: Thousand-Year Blood War": 10, "My Hero Academia": 10, "Black Clover": 10 };
+
+/* ---------- State ---------- */
+const KEY = 'anivault_v6';
+let state;
+const norm = t => String(t).toLowerCase().replace(/[^a-z0-9]/g, '');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function seedState() {
+  const s = {};
+  CATALOG.forEach(c => {
+    const done = c.id <= 78 && c.id !== 65 && !PREV_UNWATCHED.has(c.title);
+    s[c.id] = done ? { st: 'done', r: PREV_SCORES[c.title] ?? c.seed, n: '' } : { st: 'backlog', r: null, n: '' };
+  });
+  return { s, custom: [], ui: { sort: 'default', dense: false } };
+}
+function load() { try { const r = localStorage.getItem(KEY); if (r) { const p = JSON.parse(r); if (p && p.s) return p; } } catch (e) {} return seedState(); }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+state = load();
+state.ui = Object.assign({ sort: 'default', dense: false }, state.ui);
+
+const all = () => CATALOG.concat(state.custom);
+const get = id => state.s[id] || (state.s[id] = { st: 'backlog', r: null, n: '' });
+const ui = { q: '', genre: 'ALL', status: 'ALL' };
+const pinned = new Set(); /* titles you just changed stay visible until you change the view */
+
+/* ---------- Taste model ---------- */
+function buildModel() {
+  const rated = all().filter(a => get(a.id).st === 'done' && get(a.id).r);
+  const mean = rated.length ? rated.reduce((s, a) => s + get(a.id).r, 0) / rated.length : 0;
+  const acc = new Map();
+  rated.forEach(a => [a.genre, ...a.tags].forEach(t => {
+    const e = acc.get(t) || { n: 0, sum: 0 }; e.n++; e.sum += get(a.id).r - mean; acc.set(t, e);
+  }));
+  const delta = new Map();
+  acc.forEach((e, t) => delta.set(t, { n: e.n, d: e.sum / (e.n + 3) }));
+  return { n: rated.length, mean, delta, active: rated.length >= 8 };
+}
+function predict(a, m) {
+  if (!m.active) return { v: a.seed, model: false };
+  const ds = [a.genre, ...a.tags].map(t => (m.delta.get(t) || { d: 0 }).d);
+  const model = m.mean + ds.reduce((x, y) => x + y, 0) / ds.length * 2;
+  const v = Math.min(10, Math.max(1, 0.6 * model + 0.4 * a.seed));
+  return { v, model: true };
+}
+
+/* ---------- Mutations ---------- */
+let focusKey = null;
+function setStatus(id, st) {
+  pinned.add(id); const e = get(id); e.st = st;
+  if (st === 'backlog' || st === 'watching') { /* keep rating in case it is restarted */ }
+  save(); render();
+}
+function setRating(id, v) { pinned.add(id); const e = get(id); e.r = e.r === v ? null : v; if (e.st !== 'done') e.st = 'done'; focusKey = `r-${id}-${v}`; save(); render(); }
+
+/* ---------- Toast ---------- */
+let toastTimer, undoFn = null;
+function toast(msg, undo) {
+  document.getElementById('toast-msg').textContent = msg;
+  const u = document.getElementById('toast-undo'); undoFn = undo || null; u.hidden = !undo;
+  const t = document.getElementById('toast'); t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), undo ? 6000 : 2800);
+}
+document.getElementById('toast-undo').addEventListener('click', () => { if (undoFn) undoFn(); document.getElementById('toast').classList.remove('show'); });
+
+/* ---------- Icons ---------- */
+const ICON = {
+  search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
+  plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7"/></svg>',
+  rows: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>',
+  copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>'
+};
+
+/* ---------- Stats strip ---------- */
+function renderStats(m) {
+  const list = all(); const c = { backlog: 0, watching: 0, done: 0, dropped: 0 };
+  list.forEach(a => c[get(a.id).st]++);
+  const rated = list.filter(a => get(a.id).st === 'done' && get(a.id).r);
+  const avg = rated.length ? (rated.reduce((s, a) => s + get(a.id).r, 0) / rated.length).toFixed(1) : '-';
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><span>Watched</span><b>${c.done}<small> / ${list.length}</small></b></div>
+    <div class="stat"><span>Avg rating</span><b>${avg}<small> / 10</small></b></div>
+    <div class="stat"><span>Watching</span><b>${c.watching}</b></div>
+    <div class="stat"><span>Plan to watch</span><b>${c.backlog}</b></div>`;
+  return c;
+}
+
+/* ---------- Library ---------- */
+function cardHtml(a, m) {
+  const e = get(a.id); const p = predict(a, m);
+  let foot = '';
+  if (e.st === 'done') {
+    foot = `<div class="rate-label"><span>Your rating</span><b>${e.r ? e.r + ' / 10' : 'Not rated yet'}</b></div>
+      <div class="rate" role="radiogroup" aria-label="Your rating for ${esc(a.title)}">${[1,2,3,4,5,6,7,8,9,10].map(n =>
+        `<button type="button" role="radio" aria-checked="${e.r === n}" class="${e.r && n <= e.r ? 'on' : ''}" data-act="rate" data-id="${a.id}" data-v="${n}" id="r-${a.id}-${n}">${n}</button>`).join('')}</div>
+      <details class="note"${e.n ? ' open' : ''}><summary>${e.n ? 'Note' : 'Add a note'}</summary><textarea data-act="note" data-id="${a.id}" aria-label="Note for ${esc(a.title)}" placeholder="Favorite arc, why you dropped off, who to recommend it to">${esc(e.n)}</textarea></details>`;
+  } else if (e.st === 'dropped') {
+    foot = `<div class="foot-actions"><button type="button" class="btn" data-act="status" data-id="${a.id}" data-v="watching">Resume</button></div>`;
+  } else {
+    foot = `<div class="pred"><div class="pred-line"><span>${p.model ? 'Predicted for you' : 'Starting guess'}</span><b>${p.v.toFixed(1)}</b></div><div class="track" aria-hidden="true"><i style="width:${p.v * 10}%"></i></div></div>
+      <div class="foot-actions"><button type="button" class="btn primary" data-act="status" data-id="${a.id}" data-v="done">${ICON.check} Mark watched</button>${e.st === 'backlog' ? `<button type="button" class="btn ghost" data-act="status" data-id="${a.id}" data-v="watching">Start</button>` : ''}</div>`;
+  }
+  return `<article class="card ${e.st}">
+    <div class="card-top">
+      <div class="meta"><span class="dot" style="background:${gvar(a.genre)}"></span><b>${esc(a.genre)}</b><span>${a.year || ''}</span></div>
+      <select class="status" data-s="${e.st}" data-act="status-select" data-id="${a.id}" aria-label="Status of ${esc(a.title)}">${Object.entries(STATUS).map(([k, v]) => `<option value="${k}"${k === e.st ? ' selected' : ''}>${v}</option>`).join('')}</select>
+    </div>
+    <h3>${esc(a.title)}</h3>
+    <p class="vibe">${esc(a.vibe)}</p>
+    <div class="tags">${a.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>
+    <div class="foot">${foot}</div>
+  </article>`;
+}
+
+function renderLibrary(counts, m) {
+  const q = ui.q.toLowerCase().trim();
+  let list = all().filter(a => {
+    const e = get(a.id);
+    const hit = !q || a.title.toLowerCase().includes(q) || a.vibe.toLowerCase().includes(q) || a.tags.some(t => t.toLowerCase().includes(q));
+    return hit && (ui.genre === 'ALL' || a.genre === ui.genre) && (ui.status === 'ALL' || e.st === ui.status || pinned.has(a.id));
+  });
+  const sorters = {
+    default: null,
+    rating: (a, b) => (get(b.id).r || 0) - (get(a.id).r || 0) || predict(b, m).v - predict(a, m).v,
+    predicted: (a, b) => predict(b, m).v - predict(a, m).v,
+    year: (a, b) => (b.year || 0) - (a.year || 0),
+    title: (a, b) => a.title.localeCompare(b.title)
+  };
+  if (sorters[state.ui.sort]) list = list.slice().sort(sorters[state.ui.sort]);
+  const total = all().length;
+  const pill = (k, label, n) => `<button type="button" class="chip" data-act="filter-status" data-v="${k}" aria-pressed="${ui.status === k}">${label} ${n}</button>`;
+  const view = document.getElementById('view');
+  const prevSearch = document.getElementById('search');
+  const keepFocus = prevSearch && document.activeElement === prevSearch;
+  view.innerHTML = `
+  <div class="bar">
+    <div class="row">
+      <div class="search">${ICON.search}<input id="search" type="search" placeholder="Search titles, tags, descriptions" value="${esc(ui.q)}" aria-label="Search"></div>
+      <select id="genre" aria-label="Genre">${'<option value="ALL">All genres</option>' + GENRES.map(g => `<option value="${g}"${ui.genre === g ? ' selected' : ''}>${GENRE_LABEL[g]}</option>`).join('')}</select>
+      <select id="sort" aria-label="Sort">${[['default','Original order'],['rating','Your rating'],['predicted','Predicted match'],['year','Newest first'],['title','Title A-Z']].map(([k, v]) => `<option value="${k}"${state.ui.sort === k ? ' selected' : ''}>Sort: ${v}</option>`).join('')}</select>
+      <button type="button" class="btn" data-act="dense" aria-pressed="${state.ui.dense}" title="Toggle compact cards">${ICON.rows} Compact</button>
+      <button type="button" class="btn" data-act="bulk">${ICON.plus} Paste list</button>
+      <button type="button" class="btn primary" data-act="add">${ICON.plus} Add anime</button>
+    </div>
+    <div class="chips" role="group" aria-label="Filter by status">
+      ${pill('ALL', 'All', total)}${pill('done', 'Watched', counts.done)}${pill('watching', 'Watching', counts.watching)}${pill('backlog', 'Plan to watch', counts.backlog)}${pill('dropped', 'Dropped', counts.dropped)}
+    </div>
+  </div>
+  <div class="count">${list.length === total ? `${total} titles` : `${list.length} of ${total} titles`}${m.active ? '' : ' · rate at least 8 titles to turn on predictions'}</div>
+  ${list.length ? `<div class="grid ${state.ui.dense ? 'dense' : ''}">${list.map(a => cardHtml(a, m)).join('')}</div>` : `<div class="empty"><h3>Nothing matches</h3><p>Clear the search or pick a different genre or status.</p></div>`}`;
+  if (keepFocus) { const s = document.getElementById('search'); s.focus(); s.setSelectionRange(s.value.length, s.value.length); }
+}
+
+/* ---------- Taste profile ---------- */
+function summaryText(m, genreRows, tagRows) {
+  const list = all(); const done = list.filter(a => get(a.id).st === 'done');
+  const rated = done.filter(a => get(a.id).r);
+  const top = rated.slice().sort((a, b) => get(b.id).r - get(a.id).r).slice(0, 8);
+  const low = rated.filter(a => get(a.id).r <= 7).sort((a, b) => get(a.id).r - get(b.id).r).slice(0, 5);
+  const dropped = list.filter(a => get(a.id).st === 'dropped').map(a => a.title);
+  const watching = list.filter(a => get(a.id).st === 'watching').map(a => a.title);
+  const next = list.filter(a => get(a.id).st === 'backlog').sort((a, b) => predict(b, m).v - predict(a, m).v).slice(0, 10);
+  const lines = [
+    `My AniVault summary: ${done.length} watched (${rated.length} rated, average ${m.n ? m.mean.toFixed(1) : '-'}/10), ${watching.length} watching, ${dropped.length} dropped.`,
+    `Genres by average rating: ${genreRows.slice(0, 4).map(g => `${g.g} ${g.avg.toFixed(1)} (${g.n} titles)`).join(', ') || 'none yet'}`,
+    tagRows.pos.length ? `Tags I rate highest: ${tagRows.pos.map(t => t.t).join(', ')}` : null,
+    tagRows.neg.length ? `Tags I rate lowest: ${tagRows.neg.map(t => t.t).join(', ')}` : null,
+    `Favorites: ${top.map(a => `${a.title} [${get(a.id).r}]`).join(', ') || 'none yet'}`,
+    low.length ? `Lower rated: ${low.map(a => `${a.title} [${get(a.id).r}]`).join(', ')}` : null,
+    dropped.length ? `Dropped: ${dropped.join(', ')}` : null,
+    watching.length ? `Currently watching: ${watching.join(', ')}` : null,
+    next.length ? `Next up on my list: ${next.map(a => a.title).join(', ')}` : null,
+    `\nAlready on my list (do not suggest any of these): ${list.map(a => a.title).join('; ')}`,
+    `\nTask: suggest 15 more anime that fit my taste and are not on that list.\nReply with ONLY one JSON code block and no other text, in exactly this shape:\n[{"title":"Official English or romaji title","year":2019,"genre":"one of: Action, Dark Fantasy, Psychological, Sci-Fi, Adventure, Drama, Comedy","tags":["2 to 3 short tags"],"description":"One line on what it is about and why I would like it","match":8}]\n"match" is your 1-10 guess of how much I will enjoy it.`
+  ];
+  return lines.filter(Boolean).join('\n');
+}
+
+function renderTaste(m) {
+  const list = all(); const rated = list.filter(a => get(a.id).st === 'done' && get(a.id).r);
+  const byG = {};
+  rated.forEach(a => { const e = byG[a.genre] || (byG[a.genre] = { g: a.genre, n: 0, sum: 0 }); e.n++; e.sum += get(a.id).r; });
+  const genreRows = Object.values(byG).map(e => ({ ...e, avg: e.sum / e.n })).sort((a, b) => b.sum - a.sum);
+  let arch = ["The Blank Slate Explorer", "Mark titles as watched and rate them to reveal your taste profile."], archNote = '';
+  if (rated.length >= 3 && genreRows.length) { arch = ARCH[genreRows[0].g] || arch; archNote = `Most of your points come from ${genreRows[0].g} (${genreRows[0].n} titles, average ${genreRows[0].avg.toFixed(1)}).`; }
+  const hist = Array.from({ length: 10 }, (_, i) => rated.filter(a => get(a.id).r === i + 1).length);
+  const hmax = Math.max(1, ...hist);
+  const tagArr = [...m.delta.entries()].filter(([t, e]) => e.n >= 3 && !GENRES.includes(t)).map(([t, e]) => ({ t, n: e.n, d: e.d }));
+  const pos = tagArr.filter(x => x.d > 0.05).sort((a, b) => b.d - a.d).slice(0, 6);
+  const neg = tagArr.filter(x => x.d < -0.05).sort((a, b) => a.d - b.d).slice(0, 4);
+  const next = list.filter(a => get(a.id).st === 'backlog').map(a => ({ a, p: predict(a, m) })).sort((x, y) => y.p.v - x.p.v).slice(0, 6);
+  const totalPts = rated.reduce((s, a) => s + get(a.id).r, 0);
+  const summary = summaryText(m, genreRows, { pos, neg });
+  const backup = JSON.stringify({ v: 2, items: list.map(a => { const e = get(a.id); return { title: a.title, status: e.st, rating: e.r, note: e.n || undefined, ...(a.custom ? { genre: a.genre, year: a.year, tags: a.tags, vibe: a.vibe } : {}) }; }) });
+  document.getElementById('view').innerHTML = `
+  <div class="panels" style="padding-top:8px">
+    <section class="panel wide">
+      <h2>Detected archetype</h2><p class="sub">${totalPts} points across ${rated.length} rated titles</p>
+      <div class="arch">${esc(arch[0])}</div><p style="margin:0;color:var(--ink-2);max-width:62ch">${esc(arch[1])} ${esc(archNote)}</p>
+    </section>
+    <section class="panel">
+      <h2>Genres by average rating</h2><p class="sub">Bar length is your average. The number of rated titles is on the right.</p>
+      <div class="bars">${genreRows.length ? genreRows.slice().sort((a, b) => b.avg - a.avg).map(g => `<div class="bar-row"><span class="lbl"><span class="dot" style="background:${gvar(g.g)}"></span>${esc(g.g)}</span><div class="track"><i style="width:${g.avg * 10}%"></i></div><span class="val">${g.avg.toFixed(1)} · ${g.n}</span></div>`).join('') : '<p class="help">No ratings yet.</p>'}</div>
+    </section>
+    <section class="panel">
+      <h2>Rating distribution</h2><p class="sub">How many titles you gave each score.</p>
+      <div class="hist">${hist.map((n, i) => `<div class="${n ? '' : 'zero'}"><span class="n">${n || ''}</span><i style="height:${Math.round(n / hmax * 100)}%"></i><span>${i + 1}</span></div>`).join('')}</div>
+    </section>
+    <section class="panel">
+      <h2>What you rate highest and lowest</h2><p class="sub">Tags with at least 3 rated titles, compared with your overall average.</p>
+      ${pos.length || neg.length ? `<ul class="list">${pos.map(x => `<li><span class="t">${esc(x.t)}</span><span class="pos">+${x.d.toFixed(2)} · ${x.n} titles</span></li>`).join('')}${neg.map(x => `<li><span class="t">${esc(x.t)}</span><span class="neg">${x.d.toFixed(2)} · ${x.n} titles</span></li>`).join('')}</ul>` : '<p class="help">Rate more titles to see which tags pull your scores up or down.</p>'}
+    </section>
+    <section class="panel">
+      <h2>Up next</h2><p class="sub">Highest predicted scores among titles you plan to watch.</p>
+      ${next.length ? `<ul class="list">${next.map(({ a, p }) => `<li><span class="t">${esc(a.title)}</span><span>${p.v.toFixed(1)}</span></li>`).join('')}</ul>` : '<p class="help">Your plan-to-watch list is empty.</p>'}
+    </section>
+    <section class="panel wide stack">
+      <div><h2>Get recommendations from an AI</h2><p class="sub">1. Copy this prompt and send it to an AI chat. It includes your ratings and asks for a reply the app can read. 2. Paste the reply back with the second button, review it, and add what you want.</p></div>
+      <textarea id="summary" class="mono" readonly rows="12" aria-label="Prompt for the AI">${esc(summary)}</textarea>
+      <div class="row"><button type="button" class="btn primary" data-act="copy" data-target="summary">${ICON.copy} Copy prompt</button><button type="button" class="btn" data-act="bulk">${ICON.plus} Paste AI reply</button></div>
+    </section>
+    <section class="panel wide stack">
+      <div><h2>Backup and import</h2><p class="sub">Your list is stored in this browser only. Copy the backup somewhere safe, or paste one in to restore it.</p></div>
+      <textarea id="backup" class="mono" readonly rows="3" aria-label="Backup data">${esc(backup)}</textarea>
+      <div class="row"><button type="button" class="btn" data-act="copy" data-target="backup">${ICON.copy} Copy backup</button></div>
+      <div class="field" style="margin:8px 0 0"><label for="import-box">Import (a backup from here, or data from the older AniVault file)</label>
+        <textarea id="import-box" class="mono" rows="3" placeholder="Paste JSON here"></textarea></div>
+      <div class="row"><button type="button" class="btn primary" data-act="import">Import</button><button type="button" class="btn" data-act="reset">Reset all to plan to watch</button></div>
+      <p class="help">To bring over your real ratings from the older file: open it, press F12 to open the console, run <code>copy(localStorage.getItem('anivault_list_v5'))</code>, then paste here and import.</p>
+    </section>
+  </div>`;
+}
+
+/* ---------- Import / reset ---------- */
+function doImport() {
+  const box = document.getElementById('import-box'); let data;
+  try { data = JSON.parse(box.value); } catch (e) { return toast('That is not valid JSON. Copy the whole backup and try again.'); }
+  const items = Array.isArray(data) ? data : (data && Array.isArray(data.items) ? data.items : null);
+  if (!items) return toast('No list found in that data.');
+  const snapshot = JSON.stringify(state);
+  const byNorm = new Map(all().map(a => [norm(a.title), a]));
+  let n = 0, added = 0;
+  items.forEach(it => {
+    if (!it || !it.title) return;
+    let a = byNorm.get(norm(it.title));
+    if (!a) {
+      const tags = Array.isArray(it.tags) ? it.tags : String(it.subgenre || '').split('/').map(s => s.trim()).filter(Boolean);
+      a = { id: Date.now() + added, title: String(it.title).slice(0, 120), year: it.year || null, genre: GENRES.includes(it.genre) ? it.genre : 'Action', tags, vibe: it.vibe || 'Imported', seed: 8, custom: true };
+      state.custom.push(a); byNorm.set(norm(a.title), a); added++;
+    }
+    const e = get(a.id);
+    const st = it.status || (it.watched ? 'done' : 'backlog');
+    e.st = STATUS[st] ? st : 'backlog';
+    const r = Number(it.rating ?? it.points);
+    e.r = e.st === 'done' && r >= 1 && r <= 10 ? Math.round(r) : null;
+    if (it.note) e.n = String(it.note);
+    n++;
+  });
+  save(); render();
+  toast(`Imported ${n} titles${added ? `, ${added} new` : ''}`, () => { state = JSON.parse(snapshot); save(); render(); });
+}
+function doReset() {
+  const snapshot = JSON.stringify(state);
+  Object.keys(state.s).forEach(k => state.s[k] = { st: 'backlog', r: null, n: '' });
+  save(); render();
+  toast('Everything reset to plan to watch', () => { state = JSON.parse(snapshot); save(); render(); });
+}
+
+/* ---------- Bulk add (AI reply or plain list) ---------- */
+let bulkItems = [];
+function mapGenre(g) {
+  if (GENRES.includes(g)) return g;
+  const s = String(g || '').toLowerCase();
+  if (/dark|horror|grim/.test(s)) return 'Dark Fantasy';
+  if (/psych|thriller|myster/.test(s)) return 'Psychological';
+  if (/sci|mecha|cyber/.test(s)) return 'Sci-Fi';
+  if (/advent|fantasy|isekai/.test(s)) return 'Adventure';
+  if (/drama|romance/.test(s)) return 'Drama';
+  if (/comed|slice/.test(s)) return 'Comedy';
+  return 'Action';
+}
+function parseBulk(text) {
+  let data = null;
+  const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  for (const c of [fence && fence[1], text]) {
+    if (!c || data) continue;
+    for (const [o, x] of [['[', ']'], ['{', '}']]) {
+      const a = c.indexOf(o), b = c.lastIndexOf(x);
+      if (a >= 0 && b > a) { try { data = JSON.parse(c.slice(a, b + 1)); break; } catch (e) {} }
+    }
+  }
+  let raw = [];
+  if (data) {
+    const arr = Array.isArray(data) ? data : (data.recommendations || data.items || data.anime || []);
+    raw = (Array.isArray(arr) ? arr : []).map(r => typeof r === 'string' ? { title: r } : r).filter(r => r && r.title);
+  } else {
+    raw = text.split(/\n/).map(l => l.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, '').replace(/\*\*/g, '').trim()).filter(l => l && l.length < 160)
+      .map(l => { const p = l.split(/\s+[-–—]\s+/); return { title: p[0].trim(), description: p.slice(1).join(' - ') }; });
+  }
+  const seen = new Set(all().map(a => norm(a.title)));
+  return raw.map(r => {
+    const title = String(r.title).trim().slice(0, 120), n = norm(title);
+    const dup = !n || seen.has(n); seen.add(n);
+    const tags = (Array.isArray(r.tags) ? r.tags : String(r.tags || '').split(',')).map(t => String(t).trim()).filter(Boolean).slice(0, 4);
+    const match = Number(r.match ?? r.score);
+    return { title, dup, year: parseInt(r.year, 10) || null, genre: mapGenre(r.genre), tags, vibe: String(r.description || r.vibe || r.reason || 'Suggested by AI').slice(0, 160), seed: match >= 1 && match <= 10 ? match : 8 };
+  });
+}
+function renderBulkPreview() {
+  const box = document.getElementById('bulk-preview');
+  box.innerHTML = bulkItems.map((it, i) => `<label class="bulk-row${it.dup ? ' dup' : ''}"><input type="checkbox" data-act="bulk-check" data-i="${i}" ${it.dup ? 'disabled' : 'checked'}><span><b>${esc(it.title)}</b> ${it.dup ? '<em>Already on your list</em>' : ''}<small>${esc(it.genre)}${it.year ? ' · ' + it.year : ''}${it.tags.length ? ' · ' + esc(it.tags.join(', ')) : ''}</small><small>${esc(it.vibe)}</small></span></label>`).join('');
+  updateBulkCount();
+}
+function updateBulkCount() {
+  const n = document.querySelectorAll('#bulk-preview input:checked').length;
+  const b = document.getElementById('bulk-add'); b.disabled = n === 0; b.textContent = n ? `Add ${n} to Plan to watch` : 'Add to list';
+}
+function bulkPreview() {
+  const text = document.getElementById('bulk-text').value.trim();
+  const box = document.getElementById('bulk-preview');
+  bulkItems = text ? parseBulk(text) : [];
+  if (!bulkItems.length) { box.innerHTML = ''; updateBulkCount(); return toast(text ? 'No titles found in that text' : 'Paste a reply or a list first'); }
+  renderBulkPreview();
+}
+function bulkAdd() {
+  const picked = [...document.querySelectorAll('#bulk-preview input:checked')].map(i => bulkItems[Number(i.dataset.i)]);
+  if (!picked.length) return;
+  const snapshot = JSON.stringify(state);
+  picked.forEach((it, k) => {
+    const a = { id: Date.now() + k, title: it.title, year: it.year, genre: it.genre, tags: it.tags, vibe: it.vibe, seed: it.seed, custom: true };
+    state.custom.push(a); state.s[a.id] = { st: 'backlog', r: null, n: '' };
+  });
+  save(); document.getElementById('bulk-dlg').close();
+  document.getElementById('bulk-text').value = ''; bulkItems = []; renderBulkPreview();
+  ui.status = 'backlog'; ui.q = ''; ui.genre = 'ALL';
+  if (route() === 'taste') location.hash = '#library'; else render();
+  toast(`Added ${picked.length} to Plan to watch`, () => { state = JSON.parse(snapshot); save(); render(); });
+}
+document.getElementById('bulk-text').addEventListener('paste', () => setTimeout(bulkPreview, 0));
+
+/* ---------- Routing + render ---------- */
+function route() { return location.hash === '#taste' ? 'taste' : 'library'; }
+function render() {
+  const m = buildModel(); const counts = renderStats(m);
+  const r = route();
+  document.getElementById('tab-library').setAttribute('aria-current', r === 'library' ? 'page' : 'false');
+  document.getElementById('tab-taste').setAttribute('aria-current', r === 'taste' ? 'page' : 'false');
+  if (r === 'taste') renderTaste(m); else renderLibrary(counts, m);
+  if (focusKey) { const el = document.getElementById(focusKey); if (el) el.focus(); focusKey = null; }
+}
+window.addEventListener('hashchange', () => { pinned.clear(); render(); window.scrollTo(0, 0); });
+
+/* ---------- Events ---------- */
+const dlg = document.getElementById('add-dlg');
+document.getElementById('a-genre').innerHTML = GENRES.map(g => `<option value="${g}">${GENRE_LABEL[g]}</option>`).join('');
+document.getElementById('a-cancel').addEventListener('click', () => dlg.close());
+document.getElementById('add-form').addEventListener('submit', ev => {
+  ev.preventDefault();
+  const title = document.getElementById('a-title').value.trim(); if (!title) return;
+  if (all().some(a => norm(a.title) === norm(title))) { dlg.close(); ui.q = title; render(); return toast(`"${title}" is already on your list`); }
+  const genre = document.getElementById('a-genre').value, st = document.getElementById('a-status').value;
+  const rv = parseInt(document.getElementById('a-rating').value, 10);
+  const a = { id: Date.now(), title, year: parseInt(document.getElementById('a-year').value, 10) || null, genre, tags: document.getElementById('a-tags').value.split(',').map(s => s.trim()).filter(Boolean).slice(0, 4), vibe: document.getElementById('a-vibe').value.trim() || 'Added by you', seed: 8, custom: true };
+  state.custom.unshift(a);
+  state.s[a.id] = { st, r: st === 'done' && rv >= 1 && rv <= 10 ? rv : null, n: '' };
+  save(); dlg.close(); document.getElementById('add-form').reset(); render(); toast(`Added "${title}"`);
+});
+
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-act]'); if (!b || b.tagName === 'SELECT' || b.tagName === 'TEXTAREA') return;
+  const act = b.dataset.act, id = Number(b.dataset.id);
+  if (act === 'rate') setRating(id, Number(b.dataset.v));
+  else if (act === 'status') setStatus(id, b.dataset.v);
+  else if (act === 'filter-status') { pinned.clear(); ui.status = b.dataset.v; render(); }
+  else if (act === 'dense') { state.ui.dense = !state.ui.dense; save(); render(); }
+  else if (act === 'add') dlg.showModal();
+  else if (act === 'bulk') document.getElementById('bulk-dlg').showModal();
+  else if (act === 'bulk-close') document.getElementById('bulk-dlg').close();
+  else if (act === 'bulk-preview') bulkPreview();
+  else if (act === 'bulk-add') bulkAdd();
+  else if (act === 'import') doImport();
+  else if (act === 'reset') doReset();
+  else if (act === 'copy') {
+    const ta = document.getElementById(b.dataset.target);
+    const fallback = () => { ta.select(); try { document.execCommand('copy'); toast('Copied'); } catch (e) { toast('Select the text and copy it manually'); } };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value).then(() => toast('Copied'), fallback); else fallback();
+  }
+});
+document.addEventListener('change', ev => {
+  const t = ev.target;
+  if (t.dataset.act === 'bulk-check') updateBulkCount();
+  else if (t.dataset.act === 'status-select') setStatus(Number(t.dataset.id), t.value);
+  else if (t.dataset.act === 'note') { get(Number(t.dataset.id)).n = t.value.trim(); save(); }
+  else if (t.id === 'genre') { pinned.clear(); ui.genre = t.value; render(); }
+  else if (t.id === 'sort') { pinned.clear(); state.ui.sort = t.value; save(); render(); }
+});
+document.addEventListener('input', ev => { if (ev.target.id === 'search') { pinned.clear(); ui.q = ev.target.value; render(); } });
+
+render();
+
+if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
